@@ -1,13 +1,13 @@
+import javax.sound.sampled.*;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 
 public class Tetris extends JFrame{
     TetrisPanel game;
 
-    public Tetris() throws IOException, FontFormatException {
+    public Tetris() throws IOException, FontFormatException, UnsupportedAudioFileException, LineUnavailableException {
         super("Tetris");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -19,7 +19,7 @@ public class Tetris extends JFrame{
         setResizable(false);
     }
 
-    public static void main(String[] args) throws IOException, FontFormatException {
+    public static void main(String[] args) throws IOException, FontFormatException, UnsupportedAudioFileException, LineUnavailableException {
         new Tetris();
     }
 
@@ -34,9 +34,10 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener{
 
     private final Board board, holdingBoard, nextBoard;
     private Tetrominoes currentBlock, nextBlock, heldBlock;
-    private final File fontFile;
     private final Font font;
     private final Score score;
+    private final Clip themeClip;
+    private final AudioInputStream audioInputStream;
 
     private int finalScore;
     private double blockDropSpeed;
@@ -46,14 +47,18 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener{
     Timer myTimer;
     Image back;
 
-    public TetrisPanel() throws IOException, FontFormatException {
+    public TetrisPanel() throws IOException, FontFormatException, UnsupportedAudioFileException, LineUnavailableException {
         setPreferredSize(new Dimension(WIDTH, HEIGHT));
         addKeyListener(this);
         setFocusable(true);
         requestFocus();
 
-        fontFile = new File("./src/assets/font/font.ttf");
-        font = Font.createFont(Font.TRUETYPE_FONT, fontFile);
+        audioInputStream = AudioSystem.getAudioInputStream(new File("./src/assets/music/theme.wav"));
+        themeClip = AudioSystem.getClip();
+        themeClip.open(audioInputStream);
+        themeClip.loop(Clip.LOOP_CONTINUOUSLY);
+
+        font = Font.createFont(Font.TRUETYPE_FONT, new File("./src/assets/font/font.ttf"));
 
         back = new ImageIcon("./src/assets/images/background.png").getImage();
 
@@ -238,9 +243,15 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener{
             g2d.setFont(font.deriveFont(VERY_LARGE_FONT));
             fm = g2d.getFontMetrics();
             g2d.drawString("TETRIS", (WIDTH - fm.stringWidth("TETRIS"))/2, HEIGHT/2 - BOARD_HEIGHT * BLOCK_SIZE / 2 + fm.getHeight());
+            if(finalScore >= 0) {
+                g2d.setFont(font.deriveFont(LARGE_FONT));
+                fm = g2d.getFontMetrics();
+                g2d.drawString("Game Over", (WIDTH - fm.stringWidth("Game Over")) / 2, HEIGHT / 2 - fm.getHeight());
+                g2d.drawString("Score: " + finalScore, (WIDTH - fm.stringWidth("Score: " + finalScore))/2, HEIGHT / 2 + fm.getHeight());
+            }
             g2d.setFont(font.deriveFont(SMALL_FONT));
             fm = g2d.getFontMetrics();
-            g2d.drawString("Press any button to continue", (WIDTH - fm.stringWidth("Press any button to continue")) / 2, HEIGHT/2 + BOARD_HEIGHT * BLOCK_SIZE / 2 - fm.getHeight());
+            g2d.drawString("Press any button to play", (WIDTH - fm.stringWidth("Press any button to play")) / 2, HEIGHT/2 + BOARD_HEIGHT * BLOCK_SIZE / 2 - fm.getHeight());
         }
 
     }
