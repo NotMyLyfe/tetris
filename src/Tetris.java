@@ -1,11 +1,13 @@
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.File;
+import java.io.IOException;
 
 public class Tetris extends JFrame{
     TetrisPanel game;
 
-    public Tetris(){
+    public Tetris() throws IOException, FontFormatException {
         super("Tetris");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -17,34 +19,41 @@ public class Tetris extends JFrame{
         setResizable(false);
     }
 
-    public static void main(String[] args){
+    public static void main(String[] args) throws IOException, FontFormatException {
         new Tetris();
     }
 
 }
 
 class TetrisPanel extends JPanel implements ActionListener, KeyListener{
-    public static final int WIDTH = 750, HEIGHT=750, BOARD_WIDTH = 10, BOARD_HEIGHT = 24, BLOCK_SIZE = 25, SINGLE_BLOCK_BOARD_WIDTH_HEIGHT = 4, DROP_MULTIPLIER = 2;
+    public static final int WIDTH = 750, HEIGHT=750, BOARD_WIDTH = 10, BOARD_HEIGHT = 24, BLOCK_SIZE = 25, SINGLE_BLOCK_BOARD_WIDTH_HEIGHT = 4;
+    public static final float SMALL_FONT = 12f, LARGE_FONT = 36f, VERY_LARGE_FONT = 72f;
     public static final double DROP_SPEED_INCREMENT = 0.05, MAX_SPEED = 1;
-    public static final int[] ROW_SCORE_MULTIPLIER = {
-            0, 40, 100, 300, 1200
-    };
 
     private final boolean[][] keys;
+
     private final Board board, holdingBoard, nextBoard;
     private Tetrominoes currentBlock, nextBlock, heldBlock;
+    private final File fontFile;
+    private final Font font;
+    private final Score score;
+
+    private int finalScore;
     private double blockDropSpeed;
-    private int score, level, numOfRowsCleared;
     private boolean justHeld, gameOver;
+
 
     Timer myTimer;
     Image back;
 
-    public TetrisPanel(){
+    public TetrisPanel() throws IOException, FontFormatException {
         setPreferredSize(new Dimension(WIDTH, HEIGHT));
         addKeyListener(this);
         setFocusable(true);
         requestFocus();
+
+        fontFile = new File("./src/assets/font/font.ttf");
+        font = Font.createFont(Font.TRUETYPE_FONT, fontFile);
 
         back = new ImageIcon("./src/assets/images/background.png").getImage();
 
@@ -60,26 +69,41 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener{
         nextBlock.setCentrePos(nextBoard.getWidth() / 2, nextBoard.getHeight() / 2);
 
         blockDropSpeed = DROP_SPEED_INCREMENT;
-        score = 0;
-        level = 0;
-        numOfRowsCleared = 0;
+        score = new Score(BLOCK_SIZE, HEIGHT/2 - BOARD_HEIGHT * BLOCK_SIZE / 2, font, SMALL_FONT);
 
         justHeld = false;
         heldBlock = null;
-        gameOver = false;
+        gameOver = true;
+
+        finalScore = -1;
 
         myTimer = new Timer(60, this);
-        myTimer.start();
     }
 
+    public void reset(){
+        board.reset();
+        currentBlock = new Tetrominoes();
+        currentBlock.setTopCentrePos(board.getWidth() / 2, 0);
+        nextBlock = new Tetrominoes();
+        nextBlock.setCentrePos(nextBoard.getWidth() / 2, nextBoard.getHeight() / 2);
+        heldBlock = null;
+
+        justHeld = false;
+        score.reset();
+        blockDropSpeed = DROP_SPEED_INCREMENT;
+    }
 
     public void isGameOver(){
         if(!board.isCollide(currentBlock)) return;
 
-        currentBlock.move(0, -1);
-        if(!board.isCollide(currentBlock)) return;
+        if(!board.isCollide(currentBlock, 0, -1)) {
+            currentBlock.move(0, -1);
+            return;
+        }
 
         gameOver = true;
+        finalScore = score.getScore();
+        reset();
         myTimer.stop();
 
     }
@@ -88,11 +112,7 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener{
         board.addBlock(currentBlock);
         int rowsCleared = board.clearRows();
 
-        numOfRowsCleared += rowsCleared;
-        score += ROW_SCORE_MULTIPLIER[rowsCleared] * (level + 1);
-
-        if(numOfRowsCleared >= 5 * ((level + 1) * (level + 1) + 3 * level + 3) / 2){
-            level++;
+        if(score.rowClear(rowsCleared)){
             blockDropSpeed += DROP_SPEED_INCREMENT;
             blockDropSpeed = Math.min(blockDropSpeed, MAX_SPEED);
         }
@@ -116,12 +136,11 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener{
             justHeld = false;
 
             int dy = board.drop(currentBlock);
-            score += dy * DROP_MULTIPLIER;
+            score.hardDrop(dy);
 
             currentBlock.move(0, dy);
 
             fallenBlock();
-
             return;
         }
 
@@ -129,7 +148,7 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener{
 
         if(keys[KeyEvent.VK_DOWN][1]) {
             dy = 1;
-            score++;
+            score.increment();
         }
 
         if(!board.isCollide(currentBlock, 0, dy)) {
@@ -206,11 +225,24 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener{
     public void paint(Graphics g){
         g.drawImage(back, 0, 0, this);
 
-        if(gameOver) board.draw(g, this);
-        else board.draw(g, currentBlock, this);
+        if(!gameOver){
+            board.draw(g, currentBlock, this);
+            holdingBoard.draw(g, heldBlock, this);
+            nextBoard.draw(g, nextBlock, this);
+            score.draw(g);
+        }
+        else{
+            Graphics2D g2d = (Graphics2D)g.create();
+            FontMetrics fm;
+            g2d.setColor(Color.WHITE);
+            g2d.setFont(font.deriveFont(VERY_LARGE_FONT));
+            fm = g2d.getFontMetrics();
+            g2d.drawString("TETRIS", (WIDTH - fm.stringWidth("TETRIS"))/2, HEIGHT/2 - BOARD_HEIGHT * BLOCK_SIZE / 2 + fm.getHeight());
+            g2d.setFont(font.deriveFont(SMALL_FONT));
+            fm = g2d.getFontMetrics();
+            g2d.drawString("Press any button to continue", (WIDTH - fm.stringWidth("Press any button to continue")) / 2, HEIGHT/2 + BOARD_HEIGHT * BLOCK_SIZE / 2 - fm.getHeight());
+        }
 
-        holdingBoard.draw(g, heldBlock, this);
-        nextBoard.draw(g, nextBlock, this);
     }
 
     @Override
@@ -252,6 +284,11 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener{
 
     @Override
     public void keyPressed(KeyEvent e) {
+        if(gameOver){
+            gameOver = !gameOver;
+            myTimer.start();
+            return;
+        }
         if(e.getKeyCode() > KeyEvent.KEY_LAST) return;
         keys[e.getKeyCode()][0] = !keys[e.getKeyCode()][1];
         keys[e.getKeyCode()][1] = true;

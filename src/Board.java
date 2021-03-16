@@ -7,7 +7,7 @@ public class Board {
     public static Square BORDER_BLOCK = new Square(7);
 
     private final int x, y, blockSize, topLeftX, topLeftY, width, height;
-    private final Square[][] board;
+    private Square[][] board;
 
     public Board(int x, int y, int blockSize, int width, int height){
         this.x = x;
@@ -112,5 +112,9 @@ public class Board {
         draw(g, imageObserver);
         if(currentTetromino != null)
             currentTetromino.draw(g, topLeftX, topLeftY, blockSize, imageObserver);
+    }
+
+    public void reset(){
+        board = new Square[width][height];
     }
 }
