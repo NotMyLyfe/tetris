@@ -36,8 +36,6 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener{
     private Tetrominoes currentBlock, nextBlock, heldBlock;
     private final Font font;
     private final Score score;
-    private final Clip themeClip;
-    private final AudioInputStream audioInputStream;
 
     private int finalScore;
     private double blockDropSpeed;
@@ -53,8 +51,8 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener{
         setFocusable(true);
         requestFocus();
 
-        audioInputStream = AudioSystem.getAudioInputStream(new File("./src/assets/music/theme.wav"));
-        themeClip = AudioSystem.getClip();
+        AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(new File("./src/assets/music/theme.wav"));
+        Clip themeClip = AudioSystem.getClip();
         themeClip.open(audioInputStream);
         themeClip.loop(Clip.LOOP_CONTINUOUSLY);
 
@@ -229,29 +227,42 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener{
     @Override
     public void paint(Graphics g){
         g.drawImage(back, 0, 0, this);
+        Graphics2D g2d = (Graphics2D)g.create();
+        FontMetrics fm;
 
         if(!gameOver){
             board.draw(g, currentBlock, this);
             holdingBoard.draw(g, heldBlock, this);
             nextBoard.draw(g, nextBlock, this);
+
             score.draw(g);
+
+            g2d.setFont(font.deriveFont(SMALL_FONT));
+            g2d.setColor(Color.WHITE);
+            fm = g2d.getFontMetrics();
+
+            g2d.drawString("Held Block", WIDTH - (BLOCK_SIZE * SINGLE_BLOCK_BOARD_WIDTH_HEIGHT) - fm.stringWidth("Held Block") / 2, HEIGHT / 2 - (BLOCK_SIZE * SINGLE_BLOCK_BOARD_WIDTH_HEIGHT) * 2);
+            g2d.drawString("Next Block", WIDTH - (BLOCK_SIZE * SINGLE_BLOCK_BOARD_WIDTH_HEIGHT) - fm.stringWidth("Next Block") / 2, HEIGHT / 2 + (BLOCK_SIZE * SINGLE_BLOCK_BOARD_WIDTH_HEIGHT) * 2);
         }
         else{
-            Graphics2D g2d = (Graphics2D)g.create();
-            FontMetrics fm;
             g2d.setColor(Color.WHITE);
             g2d.setFont(font.deriveFont(VERY_LARGE_FONT));
             fm = g2d.getFontMetrics();
             g2d.drawString("TETRIS", (WIDTH - fm.stringWidth("TETRIS"))/2, HEIGHT/2 - BOARD_HEIGHT * BLOCK_SIZE / 2 + fm.getHeight());
+
             if(finalScore >= 0) {
                 g2d.setFont(font.deriveFont(LARGE_FONT));
                 fm = g2d.getFontMetrics();
                 g2d.drawString("Game Over", (WIDTH - fm.stringWidth("Game Over")) / 2, HEIGHT / 2 - fm.getHeight());
                 g2d.drawString("Score: " + finalScore, (WIDTH - fm.stringWidth("Score: " + finalScore))/2, HEIGHT / 2 + fm.getHeight());
             }
+
             g2d.setFont(font.deriveFont(SMALL_FONT));
             fm = g2d.getFontMetrics();
+
             g2d.drawString("Press any button to play", (WIDTH - fm.stringWidth("Press any button to play")) / 2, HEIGHT/2 + BOARD_HEIGHT * BLOCK_SIZE / 2 - fm.getHeight());
+            g2d.drawString("Left/Right Arrows - Left/Right Movement, Up Arrow - Rotate", (WIDTH - fm.stringWidth("Left/Right Arrows - Left/Right Movement, Up Arrow - Rotate"))/2, HEIGHT - fm.getHeight() * 4);
+            g2d.drawString("Down Arrow - Soft Drop, Space - Hard Drop, Shift - Hold", (WIDTH - fm.stringWidth("Down Arrow - Soft Drop, Space - Hard Drop, Shift - Hold"))/2, HEIGHT - fm.getHeight() * 2);
         }
 
     }
@@ -296,7 +307,7 @@ class TetrisPanel extends JPanel implements ActionListener, KeyListener{
     @Override
     public void keyPressed(KeyEvent e) {
         if(gameOver){
-            gameOver = !gameOver;
+            gameOver = false;
             myTimer.start();
             return;
         }

@@ -3,7 +3,7 @@ import java.awt.*;
 import java.awt.image.*;
 
 public class Square{
-    public static final Image SQUARES[] ={
+    public static final Image[] SQUARES ={
             new ImageIcon("./src/assets/images/cyan_block.png").getImage(),
             new ImageIcon("./src/assets/images/blue_block.png").getImage(),
             new ImageIcon("./src/assets/images/orange_block.png").getImage(),

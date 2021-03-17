@@ -91,7 +91,8 @@ public class Tetrominoes {
     public static final int NON_I_BLOCK_ROTATION_TRANSLATION_INDEX = 1;
 
     private int rotate;
-    private int x, tetrominoNum;
+    private int x;
+    private final int tetrominoNum;
     private double y;
 
     public Tetrominoes(int x, double y){
